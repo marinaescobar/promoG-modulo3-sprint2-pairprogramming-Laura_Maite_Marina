@@ -99,6 +99,3 @@ def transformacion(tabla_unica):
     tabla_final = tabla_final.rename(columns=mapeo_columnas)
 
     return tabla_final
-
-
-# %%
