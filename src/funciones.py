@@ -2,6 +2,7 @@
 # Librerías necesarias
 import pandas as pd
 import numpy as np
+import mysql.connector
 
 # %%
 def archivos():
@@ -51,15 +52,16 @@ def limpieza (df2,df1,df3):
     df2["City"] = df2["City"].fillna("Madrid")
     df2["Country"]= df2["Country"].fillna("Spain")
     df2['full_name'] = df2['first_name'] + ' ' + df2['last_name']
-
+    df2["City"] = df2["City"].apply(lambda x : x.replace("," , "") if isinstance(x , str) else x)
+    df2["Address"] = df2["Address"].apply(lambda x : x.replace("," , "") if isinstance(x , str) else x)
     df1['ID_Producto'] = df1['ID']
     df3['id'] = df3['ID_Cliente']
     
-    return df2,df1,df3
+    return df1, df2, df3
 
 def union(df1,df2,df3):
 
-    
+
 
     df_ventas_productos = pd.merge(df3, df1, on='ID_Producto', how='left')
     tabla_unica = pd.merge(df_ventas_productos, df2, on='id', how='left')
@@ -99,3 +101,90 @@ def transformacion(tabla_unica):
     tabla_final = tabla_final.rename(columns=mapeo_columnas)
 
     return tabla_final
+
+
+def creacion_tablas_esquema(query, contraseña, nombre_bbdd=None):
+    
+    if nombre_bbdd is not None:
+        cnx = mysql.connector.connect(
+            user="root",
+            password=contraseña,
+            host="127.0.0.1")
+
+        mycursor = cnx.cursor()
+
+        try:
+            mycursor.execute(query)
+            print("Consulta ejecutada correctamente.")
+            cnx.close()
+
+        except mysql.connector.Error as err:
+            print(err)
+            print("Error Code:", err.errno)
+            print("SQLSTATE", err.sqlstate)
+            print("Message", err.msg)
+            cnx.close()
+    else:
+        cnx = mysql.connector.connect(
+            user="root",
+            password=contraseña,
+            host="127.0.0.1",
+            database=nombre_bbdd)
+        
+        mycursor = cnx.cursor()
+
+        try:
+            mycursor.execute(query)
+            print("Consulta ejecutada correctamente.")
+            cnx.close()
+
+        except mysql.connector.Error as err:
+            print(err)
+            print("Error Code:", err.errno)
+            print("SQLSTATE", err.sqlstate)
+            print("Message", err.msg)
+            cnx.close()
+            
+def insertar_datos(query, contraseña, nombre_bdd, lista_tuplas):
+    
+    cnx = mysql.connector.connect(
+        user="root", 
+        password=contraseña, 
+        host="127.0.0.1", database=nombre_bdd)
+    
+    mycursor = cnx.cursor()
+    
+    try:
+        mycursor.executemany(query, lista_tuplas)
+        cnx.commit()
+        print(mycursor.rowcount, "registro/s insertado/s.")
+        cnx.close()
+        
+    except mysql.connector.Error as err:
+        print(err)
+        print("Error Code:", err.errno)
+        print("SQLSTATE", err.sqlstate)
+        print("Message", err.msg)
+        cnx.close()
+        
+def convertir_float(lista_tuplas):
+    """
+    Convierte los elementos de una lista de tuplas a float cuando sea posible.
+    Args:
+    - lista_tuplas (list): Una lista que contiene tuplas con elementos que pueden ser convertidos a float.
+    Returns:
+    - list: Una nueva lista con las mismas tuplas de entrada, pero con los elementos convertidos a float si es posible.
+    """
+    datos_tabla_caract_def = []
+    
+    for tupla in lista_tuplas:
+        lista_intermedia = []
+        for elemento in tupla:
+            try:
+                lista_intermedia.append(float(elemento))
+            except:
+                lista_intermedia.append(elemento)
+            
+        datos_tabla_caract_def.append(tuple(lista_intermedia))
+    
+    return datos_tabla_caract_def
